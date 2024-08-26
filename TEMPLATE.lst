@@ -1,0 +1,383 @@
+Microsoft (R) Macro Assembler Version 6.11		    08/22/24 14:32:05
+src\TEMPLATE.asm					     Page 1 - 1
+
+
+				; Author : 222001816 MP RAGOPHALA
+				; Practical : P05
+
+				; Set up the environment
+				.386                           ; Use 80386 instruction set
+				.MODEL FLAT                    ; Flat memory model
+				.STACK 4096                    ; Set stack size to 4096 bytes
+
+				; Include functions for I/O (you need to have io.inc with input/output routines)
+				INCLUDE io.inc
+			      C ;
+			      C ; Simple I/O Routines - Version 2
+			      C ;
+			      C 
+			      C IFNDEF IO_INC
+ = 1			      C IO_INC equ <1>
+			      C 
+			      C OutputStr PROTO NEAR32 STDCALL :DWORD
+			      C OutputInt PROTO NEAR32 STDCALL :DWORD
+			      C OutputFloat PROTO NEAR32 STDCALL :DWORD
+			      C OutputFloat8 PROTO NEAR32 STDCALL :QWORD
+			      C InputInt PROTO NEAR32 STDCALL
+			      C InputStr PROTO NEAR32 STDCALL :DWORD, :DWORD
+			      C 
+			      C ELSE
+			      C ENDIF
+			      C 
+
+				; Prototype for the exit function
+				ExitProcess PROTO NEAR32 stdcall, dwExitCode:DWORD
+
+ 00000000			.DATA
+				; Data section to store static variables and strings
+ 00000000 50 6C 65 61 73	strAgePrompt              BYTE "Please enter your age: ", 0
+	   65 20 65 6E 74
+	   65 72 20 79 6F
+	   75 72 20 61 67
+	   65 3A 20 00
+ 00000018 50 6C 65 61 73	strHRFPrompt              BYTE "Please enter your HRF: ", 0
+	   65 20 65 6E 74
+	   65 72 20 79 6F
+	   75 72 20 48 52
+	   46 3A 20 00
+ 00000030 50 6C 65 61 73	strArrayPrompt1           BYTE "Please enter the level for index ", 0
+	   65 20 65 6E 74
+	   65 72 20 74 68
+	   65 20 6C 65 76
+	   65 6C 20 66 6F
+	   72 20 69 6E 64
+	   65 78 20 00
+ 00000052 50 6C 65 61 73	strArrayPrompt2           BYTE "Please enter the duration for index ", 0
+	   65 20 65 6E 74
+	   65 72 20 74 68
+	   65 20 64 75 72
+	   61 74 69 6F 6E
+	   20 66 6F 72 20
+	   69 6E 64 65 78
+	   20 00
+ 00000077 54 68 65 20 68	strScoresPrompt           BYTE "The health scores are: ", 0
+	   65 61 6C 74 68
+	   20 73 63 6F 72
+	   65 73 20 61 72
+	   65 3A 20 00
+ 0000008F 44 6F 20 79 6F	strLoopPrompt             BYTE "Do you wish to process another round (0 - No, 1 - Yes)? ", 0
+	   75 20 77 69 73
+	   68 20 74 6F 20
+	   70 72 6F 63 65
+	   73 73 20 61 6E
+	   6F 74 68 65 72
+	   20 72 6F 75 6E
+	   64 20 28 30 20
+	   2D 20 4E 6F 2C
+	   20 31 20 2D 20
+	   59 65 73 29 3F
+	   20 00
+
+				; Variables for user input
+ 000000C8 00000000		age                       DWORD ?        ; Variable to store user's age
+ 000000CC 00000000		hrf                       DWORD ?        ; Variable to store user's HRF
+
+				; Arrays for level, duration, and score
+ 000000D0  00000005 [		levelArray                DWORD 5 DUP (?)  ; Array to store 5 levels
+	    00000000
+	   ]
+ 000000E4  00000005 [		durationArray             DWORD 5 DUP (?)  ; Array to store 5 durations
+	    00000000
+	   ]
+ 000000F8  00000005 [		scoreArray                DWORD 5 DUP (?)  ; Array to store 5 scores
+	    00000000
+	   ]
+
+ 00000000			.CODE
+				;=============================Input function==================================
+ 00000000			input PROC NEAR32
+ 00000000  55			    push    ebp                      ; Save base pointer
+ 00000001  8B EC		    mov     ebp, esp                 ; Set base pointer to current stack pointer
+ 00000003  53			    push    ebx                      ; Save registers
+ 00000004  51			    push    ecx
+ 00000005  52			    push    edx
+
+ 00000006  B9 00000000		    mov     ecx, 0                   ; Initialize loop counter
+ 0000000B  8B 5D 08		    mov     ebx, [ebp+8]             ; Get the address of the array into ebx
+
+ 0000000E			inputLoop:
+ 0000000E  8D 05 00000030 R	    lea     eax, strArrayPrompt1     ; Load the prompt string into eax
+ 00000014  50			    push    eax
+ 00000015  E8 00000000 E	    call    OutputStr                ; Print the prompt
+ 0000001A  51			    push    ecx                      ; Push index (ecx) to the stack for output
+ 0000001B  E8 00000000 E	    call    OutputInt                ; Print the index
+ 00000020  E8 00000000 E	    call    InputInt                 ; Get the integer input from the user
+ 00000025  89 03		    mov     [ebx], eax               ; Store the input value in the array
+ 00000027  83 C3 04		    add     ebx, 4                   ; Move to the next element in the array
+ 0000002A  41			    inc     ecx                      ; Increment loop counter
+ 0000002B  3B 4D 0C		    cmp     ecx, [ebp+12]            ; Compare counter with array length
+ 0000002E  7C DE		    jl      inputLoop                ; If less, loop again
+
+ 00000030  5A			    pop     edx                      ; Restore registers
+ 00000031  59			    pop     ecx
+ 00000032  5B			    pop     ebx
+ 00000033  8B E5		    mov     esp, ebp                 ; Restore stack pointer
+ 00000035  5D			    pop     ebp                      ; Restore base pointer
+ 00000036  C2 0008		    ret     8                        ; Return from the function, clean up stack
+ 00000039			input ENDP
+
+				;=============================Display function==================================
+ 00000039			display PROC NEAR32
+ 00000039  55			    push    ebp                      ; Save base pointer
+ 0000003A  8B EC		    mov     ebp, esp                 ; Set base pointer to current stack pointer
+ 0000003C  53			    push    ebx                      ; Save registers
+ 0000003D  51			    push    ecx
+
+ 0000003E  B9 00000000		    mov     ecx, 0                   ; Initialize loop counter
+ 00000043  8B 5D 08		    mov     ebx, [ebp+8]             ; Get the address of the array into ebx
+
+ 00000046			displayLoop:
+ 00000046  8B 03		    mov     eax, [ebx]               ; Load the current array element into eax
+ 00000048  50			    push    eax
+ 00000049  E8 00000000 E	    call    OutputInt                ; Print the value
+ 0000004E  83 C3 04		    add     ebx, 4                   ; Move to the next element in the array
+ 00000051  41			    inc     ecx                      ; Increment loop counter
+ 00000052  3B 4D 0C		    cmp     ecx, [ebp+12]            ; Compare counter with array length
+ 00000055  7C EF		    jl      displayLoop              ; If less, loop again
+
+ 00000057  59			    pop     ecx                      ; Restore registers
+ 00000058  5B			    pop     ebx
+ 00000059  8B E5		    mov     esp, ebp                 ; Restore stack pointer
+ 0000005B  5D			    pop     ebp                      ; Restore base pointer
+ 0000005C  C2 0008		    ret     8                        ; Return from the function, clean up stack
+ 0000005F			display ENDP
+
+				;=============================HealthScore function===============================
+ 0000005F			healthScore PROC NEAR32
+ 0000005F  55			    push    ebp                      ; Save base pointer
+ 00000060  8B EC		    mov     ebp, esp                 ; Set base pointer to current stack pointer
+ 00000062  50			    push    eax                      ; Save registers
+ 00000063  52			    push    edx
+
+				    ; Calculate the health score using the formula
+				    ; HealthScore = (level * duration * HRF) / (age / 10 + 5)
+
+ 00000064  8B 45 0C		    mov     eax, [ebp+12]            ; Load 'level' into eax
+ 00000067  0F AF 45 10		    imul    eax, [ebp+16]            ; Multiply level by duration
+ 0000006B  0F AF 45 14		    imul    eax, [ebp+20]            ; Multiply result by HRF
+ 0000006F  8B 55 08		    mov     edx, [ebp+8]             ; Load 'age' into edx
+ 00000072  B9 0000000A		    mov     ecx, 10                  ; Set divisor as 10
+ 00000077  99			    cdq                              ; Sign-extend eax into edx:eax
+ 00000078  F7 F9		    idiv    ecx                      ; Divide age by 10
+ 0000007A  83 C0 05		    add     eax, 5                   ; Add 5 to the result
+ 0000007D  99			    cdq                              ; Sign-extend eax into edx:eax
+ 0000007E  F7 F8		    idiv    eax                      ; Divide (level * duration * HRF) by (age/10 + 5)
+
+ 00000080  5A			    pop     edx                      ; Restore registers
+ 00000081  58			    pop     eax
+ 00000082  8B E5		    mov     esp, ebp                 ; Restore stack pointer
+ 00000084  5D			    pop     ebp                      ; Restore base pointer
+ 00000085  C2 0010		    ret     16                       ; Return from the function, clean up stack
+ 00000088			healthScore ENDP
+
+				;=============================FinalScore function==================================
+ 00000088			finalScore PROC NEAR32
+ 00000088  55			    push    ebp                      ; Save base pointer
+ 00000089  8B EC		    mov     ebp, esp                 ; Set base pointer to current stack pointer
+ 0000008B  50			    push    eax                      ; Save registers
+ 0000008C  53			    push    ebx
+ 0000008D  51			    push    ecx
+
+ 0000008E  B9 00000000		    mov     ecx, 0                   ; Initialize loop counter
+ 00000093  8B 5D 08		    mov     ebx, [ebp+8]             ; Load 'age' into ebx
+ 00000096  8B 55 0C		    mov     edx, [ebp+12]            ; Load 'levels array' base address into edx
+ 00000099  8B 75 10		    mov     esi, [ebp+16]            ; Load 'durations array' base address into esi
+ 0000009C  8B 7D 14		    mov     edi, [ebp+20]            ; Load 'scores array' base address into edi
+
+ 0000009F			finalScoreLoop:
+ 0000009F  FF 36		    push    [esi]                    ; Push duration value onto the stack
+ 000000A1  FF 32		    push    [edx]                    ; Push level value onto the stack
+ 000000A3  FF 75 18		    push    [ebp+24]                 ; Push HRF value onto the stack
+ 000000A6  53			    push    ebx                      ; Push age value onto the stack
+ 000000A7  E8 FFFFFFB3		    call    healthScore              ; Call the healthScore function
+ 000000AC  89 07		    mov     [edi], eax               ; Store the result in the scores array
+ 000000AE  83 C2 04		    add     edx, 4                   ; Move to the next element in levels array
+ 000000B1  83 C6 04		    add     esi, 4                   ; Move to the next element in durations array
+ 000000B4  83 C7 04		    add     edi, 4                   ; Move to the next element in scores array
+ 000000B7  41			    inc     ecx                      ; Increment loop counter
+ 000000B8  83 F9 05		    cmp     ecx, 5                   ; Check if we've processed all elements
+ 000000BB  7C E2		    jl      finalScoreLoop           ; If not, loop again
+
+ 000000BD  59			    pop     ecx                      ; Restore registers
+ 000000BE  5B			    pop     ebx
+ 000000BF  58			    pop     eax
+ 000000C0  8B E5		    mov     esp, ebp                 ; Restore stack pointer
+ 000000C2  5D			    pop     ebp                      ; Restore base pointer
+ 000000C3  C2 0014		    ret     20                       ; Return from the function, clean up stack
+ 000000C6			finalScore ENDP
+
+				;=============================The main program that calls the various functions================================
+ 000000C6			_start:
+ 000000C6  55			    push    ebp                      ; Save base pointer
+ 000000C7  8B EC		    mov     ebp, esp                 ; Set base pointer to current stack pointer
+
+ 000000C9			mainProg:
+				    ; Step 1: Ask the user for age and HRF
+ 000000C9  8D 05 00000000 R	    lea     eax, strAgePrompt        ; Load age prompt string into eax
+ 000000CF  50			    push    eax
+ 000000D0  E8 00000000 E	    call    OutputStr                ; Print the age prompt
+ 000000D5  E8 00000000 E	    call    InputInt                 ; Get the age from user input
+ 000000DA  A3 000000C8 R	    mov     [age], eax               ; Store the age in memory
+
+ 000000DF  8D 05 00000018 R	    lea     eax, strHRFPrompt        ; Load HRF prompt string into eax
+ 000000E5  50			    push    eax
+ 000000E6  E8 00000000 E	    call    OutputStr                ; Print the HRF prompt
+ 000000EB  E8 00000000 E	    call    InputInt                 ; Get the HRF from user input
+ 000000F0  A3 000000CC R	    mov     [hrf], eax               ; Store the HRF in memory
+
+				    ; Step 2: Input for levels and durations arrays
+ 000000F5  8D 05 000000D0 R	    lea     eax, levelArray          ; Load the base address of levelArray into eax
+ 000000FB  50			    push    eax
+ 000000FC  B8 00000005		    mov     eax, 5                   ; Load array length (5) into eax
+ 00000101  50			    push    eax
+ 00000102  E8 FFFFFEF9		    call    input                    ; Call input function to fill levelArray
+
+ 00000107  8D 05 000000E4 R	    lea     eax, durationArray       ; Load the base address of durationArray into eax
+ 0000010D  50			    push    eax
+ 0000010E  B8 00000005		    mov     eax, 5                   ; Load array length (5) into eax
+ 00000113  50			    push    eax
+ 00000114  E8 FFFFFEE7		    call    input                    ; Call input function to fill durationArray
+
+				    ; Step 3: Display age and HRF
+ 00000119  A1 000000C8 R	    mov     eax, [age]               ; Load age from memory into eax
+ 0000011E  50			    push    eax
+ 0000011F  E8 00000000 E	    call    OutputInt                ; Display the age
+
+ 00000124  A1 000000CC R	    mov     eax, [hrf]               ; Load HRF from memory into eax
+ 00000129  50			    push    eax
+ 0000012A  E8 00000000 E	    call    OutputInt                ; Display the HRF
+
+				    ; Step 4: Display levels and durations arrays
+ 0000012F  8D 05 000000D0 R	    lea     eax, levelArray          ; Load the base address of levelArray into eax
+ 00000135  50			    push    eax
+ 00000136  B8 00000005		    mov     eax, 5                   ; Load array length (5) into eax
+ 0000013B  50			    push    eax
+ 0000013C  E8 FFFFFEF8		    call    display                  ; Call display function to print levelArray
+
+ 00000141  8D 05 000000E4 R	    lea     eax, durationArray       ; Load the base address of durationArray into eax
+ 00000147  50			    push    eax
+ 00000148  B8 00000005		    mov     eax, 5                   ; Load array length (5) into eax
+ 0000014D  50			    push    eax
+ 0000014E  E8 FFFFFEE6		    call    display                  ; Call display function to print durationArray
+
+				    ; Step 5: Calculate scores
+ 00000153  8D 05 000000F8 R	    lea     eax, scoreArray          ; Load the base address of scoreArray into eax
+ 00000159  50			    push    eax
+ 0000015A  8D 05 000000E4 R	    lea     eax, durationArray       ; Load the base address of durationArray into eax
+ 00000160  50			    push    eax
+ 00000161  8D 05 000000D0 R	    lea     eax, levelArray          ; Load the base address of levelArray into eax
+ 00000167  50			    push    eax
+ 00000168  A1 000000C8 R	    mov     eax, [age]               ; Push age onto the stack
+ 0000016D  50			    push    eax
+ 0000016E  A1 000000CC R	    mov     eax, [hrf]               ; Push HRF onto the stack
+ 00000173  50			    push    eax
+ 00000174  E8 FFFFFF0F		    call    finalScore               ; Call finalScore to calculate all health scores
+
+				    ; Step 6: Display scores
+ 00000179  8D 05 000000F8 R	    lea     eax, scoreArray          ; Load the base address of scoreArray into eax
+ 0000017F  50			    push    eax
+ 00000180  B8 00000005		    mov     eax, 5                   ; Load array length (5) into eax
+ 00000185  50			    push    eax
+ 00000186  E8 FFFFFEAE		    call    display                  ; Call display function to print scoreArray
+
+				    ; Step 7: Ask if the user wants to repeat
+ 0000018B			loopUser:
+ 0000018B  8D 05 0000008F R	    lea     eax, strLoopPrompt       ; Load loop prompt string into eax
+ 00000191  50			    push    eax
+ 00000192  E8 00000000 E	    call    OutputStr                ; Print the loop prompt
+ 00000197  E8 00000000 E	    call    InputInt                 ; Get user input (0 or 1)
+ 0000019C  83 F8 00		    cmp     eax, 0                   ; Check if the user entered 0
+ 0000019F  74 0B		    je      quit                     ; If yes, exit the program
+ 000001A1  83 F8 01		    cmp     eax, 1                   ; Check if the user entered 1
+ 000001A4  0F 84 FFFFFF1F	    je      mainProg                 ; If yes, restart the main program
+ 000001AA  EB DF		    jmp     loopUser                 ; Otherwise, ask again
+
+ 000001AC			quit:
+ 000001AC  8B E5		    mov     esp, ebp                 ; Restore stack pointer
+ 000001AE  5D			    pop     ebp                      ; Restore base pointer
+				    INVOKE ExitProcess, 0            ; Exit the program
+
+ 000001B6			Public _start
+				END
+Microsoft (R) Macro Assembler Version 6.11		    08/22/24 14:32:05
+src\TEMPLATE.asm					     Symbols 2 - 1
+
+
+
+
+Segments and Groups:
+
+                N a m e                 Size     Length   Align   Combine Class
+
+FLAT . . . . . . . . . . . . . .	GROUP
+STACK  . . . . . . . . . . . . .	32 Bit	 00001000 DWord	  Stack	  'STACK'	 
+_DATA  . . . . . . . . . . . . .	32 Bit	 0000010C DWord	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 000001B6 DWord	  Public  'CODE'	
+
+
+Procedures,  parameters and locals:
+
+                N a m e                 Type     Value    Attr
+
+$$$$$$00005  . . . . . . . . . .	P Near	 000000C6 _TEXT	Length= 000000F0 Private
+  mainProg . . . . . . . . . . .	L Near	 000000C9 _TEXT	
+  loopUser . . . . . . . . . . .	L Near	 0000018B _TEXT	
+  quit . . . . . . . . . . . . .	L Near	 000001AC _TEXT	
+ExitProcess  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+InputInt . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+InputStr . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+OutputFloat8 . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+OutputFloat  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+OutputInt  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+OutputStr  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
+display  . . . . . . . . . . . .	P Near	 00000039 _TEXT	Length= 00000026 Public
+  displayLoop  . . . . . . . . .	L Near	 00000046 _TEXT	
+finalScore . . . . . . . . . . .	P Near	 00000088 _TEXT	Length= 0000003E Public
+  finalScoreLoop . . . . . . . .	L Near	 0000009F _TEXT	
+healthScore  . . . . . . . . . .	P Near	 0000005F _TEXT	Length= 00000029 Public
+input  . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000039 Public
+  inputLoop  . . . . . . . . . .	L Near	 0000000E _TEXT	
+
+
+Symbols:
+
+                N a m e                 Type     Value    Attr
+
+@CodeSize  . . . . . . . . . . .	Number	 00000000h   
+@DataSize  . . . . . . . . . . .	Number	 00000000h   
+@Interface . . . . . . . . . . .	Number	 00000000h   
+@Model . . . . . . . . . . . . .	Number	 00000007h   
+@code  . . . . . . . . . . . . .	Text   	 _TEXT
+@data  . . . . . . . . . . . . .	Text   	 FLAT
+@fardata?  . . . . . . . . . . .	Text   	 FLAT
+@fardata . . . . . . . . . . . .	Text   	 FLAT
+@stack . . . . . . . . . . . . .	Text   	 FLAT
+IO_INC . . . . . . . . . . . . .	Text   	 1
+_start . . . . . . . . . . . . .	L Near	 000000C6 _TEXT	Public
+age  . . . . . . . . . . . . . .	DWord	 000000C8 _DATA	
+durationArray  . . . . . . . . .	DWord	 000000E4 _DATA	
+hrf  . . . . . . . . . . . . . .	DWord	 000000CC _DATA	
+levelArray . . . . . . . . . . .	DWord	 000000D0 _DATA	
+loopUser . . . . . . . . . . . .	L Near	 0000018B _TEXT	
+mainProg . . . . . . . . . . . .	L Near	 000000C9 _TEXT	
+quit . . . . . . . . . . . . . .	L Near	 000001AC _TEXT	
+scoreArray . . . . . . . . . . .	DWord	 000000F8 _DATA	
+strAgePrompt . . . . . . . . . .	Byte	 00000000 _DATA	
+strArrayPrompt1  . . . . . . . .	Byte	 00000030 _DATA	
+strArrayPrompt2  . . . . . . . .	Byte	 00000052 _DATA	
+strHRFPrompt . . . . . . . . . .	Byte	 00000018 _DATA	
+strLoopPrompt  . . . . . . . . .	Byte	 0000008F _DATA	
+strScoresPrompt  . . . . . . . .	Byte	 00000077 _DATA	
+
+	   0 Warnings
+	   0 Errors
